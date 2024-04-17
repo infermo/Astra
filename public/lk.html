@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+        }
+
+        .nav-panel {
+            width: 200px;
+            background: #f4f4f4;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: black;
+        }
+
+        .nav-link:hover {
+            background-color: #ddd;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-panel">
+        <a href="#" class="nav-link" onclick="showTab('profile')">Мои данные</a>
+        <a href="#" class="nav-link" onclick="showTab('courses')">Мои курсы</a>
+        <!-- Ссылка для создания курса будет добавлена динамически если роль подходит -->
+    </div>
+    <div id="loginMessage"></div>
+    <div class="content" id="contentArea">
+        <!-- Содержимое вкладок будет отображаться здесь -->
+    </div>
+    <button id="logoutButton">Выйти</button>
+
+    <script>
+        document.getElementById('logoutButton').addEventListener('click', function () {
+            fetch('/logout', {
+                method: 'POST',
+            })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/auth.html';
+                    }
+                })
+                .catch(error => console.error('Ошибка при выходе:', error));
+        });
+    </script>
+    <script>
+        function fetchUserData() {
+            fetch('/api/user-data', {
+                method: 'GET',
+                credentials: 'include' // Add this line
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Authentication not successful');
+                    }
+                })
+                .then(userData => {
+                    displayUserData(userData);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('loginMessage').textContent = error.message;
+                });
+        }
+        function showTab(tabName) {
+            const contentArea = document.getElementById('contentArea');
+            switch (tabName) {
+                case 'profile':
+                    contentArea.innerHTML = '<h1>Мои данные</h1>';
+                    break;
+                case 'courses':
+                    contentArea.innerHTML = '<h1>Мои курсы</h1>';
+                    break;
+                case 'createCourse':
+                    contentArea.innerHTML = document.getElementById('createCourseForm').outerHTML;
+                    break;
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            showTab('profile');
+        });
+
+
+        function displayUserData(userData) {
+            const contentArea = document.getElementById('contentArea');
+            const fullName = `${userData.name} ${userData.surname} ${userData.patronymic}`;
+            const email = userData.email;
+            contentArea.innerHTML = `<h1>Мои данные</h1>
+                                 <p>${fullName}</p>
+                                 <p>${email}</p>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchUserData);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Автоматически отображаем вкладку "Мои данные"
+            showTab('profile');
+            // Загружаем и отображаем данные пользователя
+            fetchUserData();
+        });
+        // Проверка роли пользователя и добавление вкладки если нужно
+        document.addEventListener('DOMContentLoaded', function () {
+            const role = 'teacher'; // Это значение должно быть загружено из данных пользователя
+            if (role === 'admin' || role === 'teacher') {
+                const navPanel = document.querySelector('.nav-panel');
+                const createCourseLink = document.createElement('a');
+                createCourseLink.href = "#";
+                createCourseLink.className = "nav-link";
+                createCourseLink.innerText = "Создать курс";
+                createCourseLink.onclick = function () { showTab('createCourse'); };
+                navPanel.appendChild(createCourseLink);
+            }
+        });
+    </script>
+</body>
+
+</html>

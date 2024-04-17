@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #312a6c;
+            color: white;
+        }
+
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            /* Выравниваем содержимое по правому краю */
+            padding: 20px;
+            /* Добавим отступы для красоты */
+        }
+
+        .main {
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .course-card {
+            background: #3e3598;
+            padding: 20px;
+            border-radius: 10px;
+            width: 30%;
+            text-align: center;
+        }
+
+        .course-card h3 {
+            margin-bottom: 10px;
+        }
+
+        .course-card button {
+            border: none;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            background: #564f8a;
+            color: white;
+            cursor: pointer;
+        }
+
+        .course-card button:hover {
+            background: #7168b1;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            background: #564f8a;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-left: 10px;
+            /* Добавляем немного пространства между ссылками */
+        }
+
+        .nav-link:hover {
+            background: #7168b1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <a class="nav-link" href="#">Главная</a>
+        <a class="nav-link" href="#">Мои курсы</a>
+        <a class="nav-link" href="reg.html">Регистрация</a>
+        <a class="nav-link" href="auth.html">Войти</a>
+    </div>
+
+    <h2 style="text-align: center; margin-top: 20px;">Рекомендованные курсы</h2>
+
+    <div class="main">
+        <div class="course-card">
+            <h3>Курс 1</h3>
+            <p>Description of the course</p>
+            <button>Sign Up</button>
+        </div>
+        <div class="course-card">
+            <h3>Курс 2</h3>
+            <p>Description of the course</p>
+            <button>Sign Up</button>
+        </div>
+        <div class="course-card">
+            <h3>Курс 3</h3>
+            <p>Description of the course</p>
+            <button>Sign Up</button>
+        </div>
+    </div>
+
+</body>
+
+</html>
