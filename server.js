@@ -94,7 +94,13 @@ app.get('/api/users', async (req, res) => {
         res.status(401).json({ error: "User not logged in" }); // Send an error if the user is not logged in
     }
 });
-
+app.get('/api/user-data', isAuthenticated, (req, res) => {
+    if (req.session.user) {
+        res.json({ name: req.session.user.name, surname: req.session.user.surname, patronymic: req.session.user.patronymic, email: req.session.user.email });
+    } else {
+        res.status(401).json({ message: 'Пользователь не авторизован' });
+    }
+});
 app.post('/change-role', async (req, res) => {
     const { userId, newRole } = req.body;
     if (!['admin', 'teacher', 'student'].includes(newRole)) {
