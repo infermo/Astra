@@ -126,23 +126,20 @@ app.post('/change-role', async (req, res) => {
         res.status(500).json({ message: 'Ошибка сервера' });
     }
 });
-app.post('/create-course', async (req, res) => {
-    const { courseName, courseDescription } = req.body;
-    const userId = req.user.id;  // Убедитесь, что у пользователя есть middleware для аутентификации
-    // Проверяем роль пользователя
-    if (!['teacher', 'admin'].includes(req.user.role)) {
-        return res.status(403).send({ message: 'Недостаточно прав для создания курса' });
-    }
-
+app.post('/api/create-course', async (req, res) => {
+    const { courseName, tasks } = req.body;
     try {
-        const result = await pool.query(
-            'INSERT INTO courses (name, description, created_by) VALUES ($1, $2, $3) RETURNING *',
-            [courseName, courseDescription, userId]
-        );
-        res.status(201).json(result.rows[0]);
+        const result = await pool.query('INSERT INTO courses (course_name, created_by) VALUES ($1, $2) RETURNING course_id', [courseName, req.session.user.id]);
+        const courseId = result.rows[0].course_id;
+
+        for (let task of tasks) {
+            await pool.query('INSERT INTO course (course_id, task_description) VALUES ($1, $2)', [courseId, task]);
+        }
+
+        res.status(201).json({ success: true, message: 'Курс успешно создан', courseId: courseId });
     } catch (error) {
         console.error('Ошибка при создании курса:', error);
-        res.status(500).json({ message: 'Ошибка при создании курса' });
+        res.status(500).json({ success: false, message: 'Ошибка сервера при создании курса' });
     }
 });
 
