@@ -10,53 +10,59 @@ app.use(express.static('public')); // Папка для статических �
 
 const pool = new Pool({
     user: 'postgres',
-    host: 'localhost',
+    host: '192.168.31.120',
     database: 'postgres',
     password: 'ASdf1234',
     port: 5432,
 });
 
 app.use(session({
-    secret: 'your_secret_key',
+    secret: 'asdasdasdasdasdasdasd',
     resave: false,
-    saveUninitialized: true,
-    cookie: { sameSite: 'none', secure: true }
+    saveUninitialized: false,
+    cookie: { secure: false, httpOnly: true, maxAge: 3600000 }
 }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 function isAuthenticated(req, res, next) {
     if (req.session.isAuthenticated) {
-        return next();
+        next();
+    } else {
+        res.status(401).json({ message: 'Пользователь не авторизован' });
     }
-    res.redirect('/auth.html');
 }
 
+// Use this middleware for routes that require authentication
 app.get('/lk.html', isAuthenticated, (req, res) => {
-    res.sendFile('/path/to/lk.html');
+    res.sendFile(__dirname + '/public/lk.html'); // Ensure you adjust the path correctly
 });
+
+
 app.post('/login', async (req, res) => {
     const { login, password } = req.body;
     if (!login || !password) {
-        return res.status(400).send({ message: 'Требуется логин и пароль.' });
+        return res.status(400).json({ message: 'Требуется логин и пароль.' });
     }
-
     try {
         const result = await pool.query('SELECT * FROM users WHERE login = $1', [login]);
         if (result.rows.length > 0) {
             const user = result.rows[0];
             const isMatch = await bcrypt.compare(password, user.password);
             if (isMatch) {
-                req.session.user = user; // Устанавливаем сессию пользователя
-                req.session.isAuthenticated = true; // Устанавливаем флаг авторизации
-                res.status(200).send({ message: 'Успешный вход' });
+                req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role }; // Store only essential info
+                req.session.isAuthenticated = true;
+                console.log(req.session);
+                res.json({ message: 'Успешный вход' });
             } else {
-                res.status(401).send({ message: 'Не верный логин и/или пароль' });
-                req.session.isAuthenticated = false;
+                res.status(401).json({ message: 'Не верный логин и/или пароль' });
             }
         } else {
-            res.status(401).send({ message: 'Не верный логин и/или пароль' });
+            res.status(401).json({ message: 'Не верный логин и/или пароль' });
         }
     } catch (error) {
-        res.status(500).send({ message: 'Ошибка сервера' });
+        console.error('Ошибка сервера', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
     }
 });
 
@@ -84,23 +90,25 @@ app.get('/api/users', async (req, res) => {
     try {
         const result = await pool.query('SELECT id, name, login, role FROM users');
         res.status(200).json(result.rows);
+        //console.log(result);
+        return; // Важно вернуться после отправки ответа, чтобы избежать дальнейшего выполнения кода
     } catch (error) {
         console.error('Ошибка при получении пользователей:', error);
         res.status(500).json({ message: 'Ошибка при получении списка пользователей' });
+        return; // Также возвращаемся после отправки ответа в случае ошибки
     }
-    if (req.session.user) {
-        res.json({ data: req.session.user }); // Send user data as JSON
-    } else {
-        res.status(401).json({ error: "User not logged in" }); // Send an error if the user is not logged in
-    }
+
 });
-app.get('/api/user-data', isAuthenticated, (req, res) => {
-    if (req.session.user) {
-        res.json({ name: req.session.user.name, surname: req.session.user.surname, patronymic: req.session.user.patronymic, email: req.session.user.email });
-    } else {
-        res.status(401).json({ message: 'Пользователь не авторизован' });
+
+app.get('/api/user-data', async (req, res) => {
+    if (!req.session || !req.session.user) {
+        res.status(401).json({ error: "Пользователь не авторизован" });
+        return;
     }
+    // Если всё в порядке, возвращаем данные пользователя
+    res.json({ name: req.session.user.name, email: req.session.user.email, role: req.session.user.role });
 });
+
 app.post('/change-role', async (req, res) => {
     const { userId, newRole } = req.body;
     if (!['admin', 'teacher', 'student'].includes(newRole)) {
@@ -122,7 +130,6 @@ app.post('/change-role', async (req, res) => {
 app.post('/create-course', async (req, res) => {
     const { courseName, courseDescription } = req.body;
     const userId = req.user.id;  // Убедитесь, что у пользователя есть middleware для аутентификации
-
     // Проверяем роль пользователя
     if (!['teacher', 'admin'].includes(req.user.role)) {
         return res.status(403).send({ message: 'Недостаточно прав для создания курса' });

@@ -35,6 +35,22 @@
             flex-grow: 1;
             padding: 20px;
         }
+
+        #logoutButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #logoutButton:hover {
+            background-color: darkred;
+        }
     </style>
 </head>
 
@@ -51,44 +67,52 @@
     <button id="logoutButton">Выйти</button>
 
     <script>
-        document.getElementById('logoutButton').addEventListener('click', function () {
-            fetch('/logout', {
-                method: 'POST',
-            })
-                .then(response => {
-                    if (response.ok) {
-                        window.location.href = '/auth.html';
-                    }
-                })
-                .catch(error => console.error('Ошибка при выходе:', error));
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('logoutButton').addEventListener('click', function () {
+                fetch('/logout', { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            window.location.href = '/auth.html';
+                        }
+                    })
+                    .catch(error => console.error('Ошибка при выходе:', error));
+
+            });
+            showTab('profile'); // Автоматически отображаем вкладку "Мои данные" при загрузке
         });
-    </script>
-    <script>
+
         function fetchUserData() {
-            fetch('/api/user-data', {
-                method: 'GET',
-                credentials: 'include' // Add this line
-            })
+            fetch('/api/user-data', { method: 'GET', credentials: 'include' })
                 .then(response => {
                     if (response.ok) {
                         return response.json();
+                    } else if (response.status === 401) {
+                        alert('Session expired. Please log in again.');
+                        window.location.href = '/auth.html'; // Redirect to login page on session expire
                     } else {
-                        throw new Error('Authentication not successful');
+                        throw new Error('Failed to fetch data');
                     }
                 })
                 .then(userData => {
+                    console.log('Data received:', userData);
                     displayUserData(userData);
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('loginMessage').textContent = error.message;
                 });
         }
+        document.addEventListener('DOMContentLoaded', fetchUserData);
+
+        function displayUserData(userData) {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `<h1>Мои данные</h1><p>Имя: ${userData.name}</p><p>Email: ${userData.email}</p>`;
+        }
+
         function showTab(tabName) {
             const contentArea = document.getElementById('contentArea');
             switch (tabName) {
                 case 'profile':
-                    contentArea.innerHTML = '<h1>Мои данные</h1>';
+                    fetchUserData(); // Загрузка данных пользователя при переключении на вкладку
                     break;
                 case 'courses':
                     contentArea.innerHTML = '<h1>Мои курсы</h1>';
@@ -102,36 +126,21 @@
             showTab('profile');
         });
 
-
-        function displayUserData(userData) {
-            const contentArea = document.getElementById('contentArea');
-            const fullName = `${userData.name} ${userData.surname} ${userData.patronymic}`;
-            const email = userData.email;
-            contentArea.innerHTML = `<h1>Мои данные</h1>
-                                 <p>${fullName}</p>
-                                 <p>${email}</p>`;
-        }
-
-        document.addEventListener('DOMContentLoaded', fetchUserData);
-
+        //Проверка роли пользователя и добавление вкладки если нужно
         document.addEventListener('DOMContentLoaded', function () {
-            // Автоматически отображаем вкладку "Мои данные"
-            showTab('profile');
-            // Загружаем и отображаем данные пользователя
-            fetchUserData();
-        });
-        // Проверка роли пользователя и добавление вкладки если нужно
-        document.addEventListener('DOMContentLoaded', function () {
-            const role = 'teacher'; // Это значение должно быть загружено из данных пользователя
-            if (role === 'admin' || role === 'teacher') {
-                const navPanel = document.querySelector('.nav-panel');
-                const createCourseLink = document.createElement('a');
-                createCourseLink.href = "#";
-                createCourseLink.className = "nav-link";
-                createCourseLink.innerText = "Создать курс";
-                createCourseLink.onclick = function () { showTab('createCourse'); };
-                navPanel.appendChild(createCourseLink);
-            }
+            fetch('/api/user-data', { method: 'GET', credentials: 'include' })
+                .then(response => response.json())
+                .then(userData => {
+                    if (['admin', 'teacher'].includes(userData.role)) {
+                        const navPanel = document.querySelector('.nav-panel');
+                        const createCourseLink = document.createElement('a');
+                        createCourseLink.href = "#";
+                        createCourseLink.className = "nav-link";
+                        createCourseLink.innerText = "Создать курс";
+                        createCourseLink.onclick = function () { showTab('createCourse'); };
+                        navPanel.appendChild(createCourseLink);
+                    }
+                });
         });
     </script>
 </body>

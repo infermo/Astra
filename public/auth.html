@@ -93,10 +93,10 @@
                 .then(data => {
                     if (data.message === 'Успешный вход') {
                         console.log(data.message);
-                        window.location.href = '/lk.html'; // Перенаправление на lk.html
+                        window.location.href = '/lk.html'; // Redirect on successful login
                     } else {
                         console.log(data.message);
-                        alert(data.message);  // Отображаем сообщение об ошибке
+                        alert(data.message);  // Show error message
                     }
                 })
                 .catch(error => {
