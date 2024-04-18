@@ -51,6 +51,33 @@
         #logoutButton:hover {
             background-color: darkred;
         }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .button {
+            padding: 5px 10px;
+            margin: 5px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -76,10 +103,136 @@
                         }
                     })
                     .catch(error => console.error('Ошибка при выходе:', error));
-
             });
-            showTab('profile'); // Автоматически отображаем вкладку "Мои данные" при загрузке
+
+            setupNavigation();
         });
+
+        function setupNavigation() {
+            fetch('/api/user-data', { method: 'GET', credentials: 'include' })
+                .then(response => response.json())
+                .then(userData => {
+                    if (['admin', 'teacher'].includes(userData.role)) {
+                        addNavLink('createCourse', 'Создать курс');
+                    }
+                    if (userData.role === 'admin') {
+                        addNavLink('admin', 'Администрирование');
+                    }
+                    showTab('profile'); // По умолчанию показываем профиль
+                })
+                .catch(error => console.error('Error loading user data:', error));
+        }
+
+        function addNavLink(id, text) {
+            const navPanel = document.querySelector('.nav-panel');
+            const link = document.createElement('a');
+            link.href = "#";
+            link.className = "nav-link";
+            link.textContent = text;
+            link.onclick = () => showTab(id);
+            navPanel.appendChild(link);
+        }
+
+        function showTab(tabName) {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = ''; // Очистка содержимого перед добавлением нового
+            switch (tabName) {
+                case 'profile':
+                    fetchUserData();
+                    break;
+                case 'courses':
+                    contentArea.innerHTML = '<h1>Мои курсы</h1>';
+                    break;
+                case 'createCourse':
+                    contentArea.innerHTML = '<h1>Создание курса</h1>';
+                    break;
+                case 'admin':
+                    contentArea.innerHTML = `<h1>Администрирование пользователей</h1>
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Имя</th>
+                                <th>Логин</th>
+                                <th>Роль</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>`;
+                    setTimeout(fetchUsers, 0); // Устраняет проблемы с отсутствием элемента
+                    break;
+            }
+        }
+
+        function fetchUsers() {
+            fetch('/api/users')
+                .then(response => response.json())
+                .then(users => {
+                    const tbody = document.getElementById('usersTable').querySelector('tbody');
+                    tbody.innerHTML = '';
+                    users.forEach(user => {
+                        const row = `<tr>
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.login}</td>
+                    <td>
+                        <select onchange="roleChanged(this, ${user.id})">
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin</option>
+                            <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>teacher</option>
+                            <option value="student" ${user.role === 'student' ? 'selected' : ''}>student</option>
+                        </select>
+                    </td>
+                </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function roleChanged(selectElement, userId) {
+            const newRole = selectElement.value;
+            fetch('/change-role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId, newRole })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Роль успешно изменена');
+                    } else {
+                        alert(data.message);
+                        // В случае ошибки, можно вернуть предыдущее значение с помощью сохраненного состояния
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ошибка при изменении роли');
+                });
+        }
+
+        function saveRoleChange(userId) {
+            const selectElement = document.querySelector(`select[data-userid="${userId}"]`);
+            const newRole = selectElement.value;
+            fetch('/change-role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId, newRole })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ошибка при сохранении роли');
+                });
+        }
+
 
         function fetchUserData() {
             fetch('/api/user-data', { method: 'GET', credentials: 'include' })
@@ -108,29 +261,19 @@
             contentArea.innerHTML = `<h1>Мои данные</h1><p>Имя: ${userData.name}</p><p>Email: ${userData.email}</p>`;
         }
 
-        function showTab(tabName) {
-            const contentArea = document.getElementById('contentArea');
-            switch (tabName) {
-                case 'profile':
-                    fetchUserData(); // Загрузка данных пользователя при переключении на вкладку
-                    break;
-                case 'courses':
-                    contentArea.innerHTML = '<h1>Мои курсы</h1>';
-                    break;
-                case 'createCourse':
-                    contentArea.innerHTML = document.getElementById('createCourseForm').outerHTML;
-                    break;
-            }
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-            showTab('profile');
-        });
-
         //Проверка роли пользователя и добавление вкладки если нужно
         document.addEventListener('DOMContentLoaded', function () {
             fetch('/api/user-data', { method: 'GET', credentials: 'include' })
                 .then(response => response.json())
                 .then(userData => {
+                    if (userData.role === 'admin') {
+                        const navPanel = document.querySelector('.nav-panel');
+                        const adminLink = document.createElement('a');
+                        adminLink.href = "#";
+                        adminLink.className = "nav-link";
+                        adminLink.innerText = "Администрирование";
+                        adminLink.onclick = function () { showTab('admin'); };
+                    }
                     if (['admin', 'teacher'].includes(userData.role)) {
                         const navPanel = document.querySelector('.nav-panel');
                         const createCourseLink = document.createElement('a');
@@ -138,7 +281,6 @@
                         createCourseLink.className = "nav-link";
                         createCourseLink.innerText = "Создать курс";
                         createCourseLink.onclick = function () { showTab('createCourse'); };
-                        navPanel.appendChild(createCourseLink);
                     }
                 });
         });

@@ -52,7 +52,6 @@ app.post('/login', async (req, res) => {
             if (isMatch) {
                 req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role }; // Store only essential info
                 req.session.isAuthenticated = true;
-                console.log(req.session);
                 res.json({ message: 'Успешный вход' });
             } else {
                 res.status(401).json({ message: 'Не верный логин и/или пароль' });
