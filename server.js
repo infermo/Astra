@@ -19,7 +19,7 @@ const pool = new Pool({
 app.use(session({
     secret: 'asdasdasdasdasdasdasd',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: { secure: false, httpOnly: true, maxAge: 3600000 }
 }));
 app.use(express.urlencoded({ extended: true }));
@@ -108,6 +108,79 @@ app.get('/api/user-data', async (req, res) => {
     res.json({ name: req.session.user.name, email: req.session.user.email, role: req.session.user.role });
 });
 
+app.get('/api/check-auth', (req, res) => {
+    if (req.session && req.session.user) {
+        res.json({ isAuthenticated: true });
+    } else {
+        res.json({ isAuthenticated: false });
+    }
+});
+
+app.get('/api/courses', (req, res) => {
+    // Предполагается, что вы используете PostgreSQL и pool для запросов
+    pool.query('SELECT * FROM courses', (error, results) => {
+        if (error) {
+            throw error;
+        }
+        res.status(200).json(results.rows);
+    });
+});
+
+app.get('/api/course-tasks/:courseId', async (req, res) => {
+    const { courseId } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM course_tasks WHERE course_id = $1', [courseId]);
+        if (result.rows.length > 0) {
+            res.json(result.rows);
+        } else {
+            res.status(404).send({ message: 'No tasks found for this course.' });
+        }
+    } catch (error) {
+        console.error('Error retrieving course tasks:', error);
+        res.status(500).json({ message: 'Server error retrieving tasks.' });
+    }
+});
+
+// Endpoint для записи пользователя на курс
+app.post('/api/enroll-course', (req, res) => {
+    const { userId, courseId } = req.body; // Значения должны быть переданы из клиента
+    const query = 'INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2)';
+    pool.query(query, [userId, courseId], (error, result) => {
+        if (error) {
+            res.status(500).json({ success: false, message: 'Ошибка при записи на курс.' });
+        } else {
+            res.json({ success: true, message: 'Вы успешно записаны на курс.' });
+        }
+    });
+});
+
+// Endpoint для проверки, записан ли пользователь на курс
+app.get('/api/check-enrollment/:userId/:courseId', (req, res) => {
+    const { userId, courseId } = req.params;
+    const query = 'SELECT 1 FROM user_courses WHERE user_id = $1 AND course_id = $2';
+    pool.query(query, [userId, courseId], (error, result) => {
+        if (error) {
+            res.status(500).json({ success: false, message: 'Ошибка при проверке записи на курс.' });
+        } else {
+            const isEnrolled = result.rowCount > 0;
+            res.json({ isEnrolled });
+        }
+    });
+});
+app.get('/api/my-courses/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const courses = await pool.query(`
+            SELECT c.* FROM courses c
+            JOIN user_courses uc ON uc.course_id = c.course_id
+            WHERE uc.user_id = $1`, [userId]);
+        res.json(courses.rows);
+    } catch (error) {
+        console.error('Ошибка при получении курсов пользователя:', error);
+        res.status(500).json({ message: 'Ошибка сервера при получении курсов пользователя' });
+    }
+});
+
 app.post('/change-role', async (req, res) => {
     const { userId, newRole } = req.body;
     if (!['admin', 'teacher', 'student'].includes(newRole)) {
@@ -128,12 +201,23 @@ app.post('/change-role', async (req, res) => {
 });
 app.post('/api/create-course', async (req, res) => {
     const { courseName, tasks } = req.body;
-    try {
-        const result = await pool.query('INSERT INTO courses (course_name, created_by) VALUES ($1, $2) RETURNING course_id', [courseName, req.session.user.id]);
-        const courseId = result.rows[0].course_id;
 
-        for (let task of tasks) {
-            await pool.query('INSERT INTO course (course_id, task_description) VALUES ($1, $2)', [courseId, task]);
+    // Проверяем, существует ли уже курс с таким названием
+    try {
+        const existingCourse = await pool.query('SELECT * FROM courses WHERE course_name = $1', [courseName]);
+        if (existingCourse.rows.length > 0) {
+            return res.status(400).json({ success: false, message: 'Курс с таким названием уже существует' });
+        }
+
+        // Вставляем новый курс, если с таким названием не найдено
+        const newCourse = await pool.query('INSERT INTO courses (course_name, created_by) VALUES ($1, $2) RETURNING course_id', [courseName, req.session.user.id]);
+        const courseId = newCourse.rows[0].course_id;
+
+        // Вставляем задания для курса, если они есть
+        if (tasks && tasks.length) {
+            for (let task of tasks) {
+                await pool.query('INSERT INTO course_tasks (course_id, task_description) VALUES ($1, $2)', [courseId, task]);
+            }
         }
 
         res.status(201).json({ success: true, message: 'Курс успешно создан', courseId: courseId });

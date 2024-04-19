@@ -9,8 +9,7 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background: #312a6c;
-            color: white;
+            background: #f4f4f4;
         }
 
         .header {
@@ -22,17 +21,41 @@
         }
 
         .main {
-            padding: 20px;
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-around;
+            gap: 20px;
+            /* Добавим небольшой интервал между карточками */
+            padding: 20px;
+        }
+
+
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            color: black;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-left: 10px;
+            /* Добавляем немного пространства между ссылками */
+        }
+
+        .nav-link:hover {
+            color: white;
         }
 
         .course-card {
-            background: #3e3598;
+            background-color: #e4e4e4;
             padding: 20px;
             border-radius: 10px;
-            width: 30%;
+            width: calc(33.333% - 20px);
+            /* Вычитаем gap, чтобы поместились 3 карточки */
             text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            /* Добавляем немного тени для лучшего вида */
+            margin-bottom: 20px;
+            /* Добавим небольшой отступ снизу */
         }
 
         .course-card h3 {
@@ -44,7 +67,7 @@
             padding: 10px 20px;
             margin-top: 20px;
             border-radius: 5px;
-            background: #564f8a;
+            background: #4CAF50;
             color: white;
             cursor: pointer;
         }
@@ -53,18 +76,40 @@
             background: #7168b1;
         }
 
-        .nav-link {
-            color: white;
-            text-decoration: none;
-            background: #564f8a;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-left: 10px;
-            /* Добавляем немного пространства между ссылками */
+        .modal {
+            display: none;
+            /* Скрыть модальное окно по умолчанию */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Цвет фона */
         }
 
-        .nav-link:hover {
-            background: #7168b1;
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -73,31 +118,196 @@
 
     <div class="header">
         <a class="nav-link" href="#">Главная</a>
-        <a class="nav-link" href="#">Мои курсы</a>
         <a class="nav-link" href="reg.html">Регистрация</a>
         <a class="nav-link" href="auth.html">Войти</a>
     </div>
 
     <h2 style="text-align: center; margin-top: 20px;">Рекомендованные курсы</h2>
-
     <div class="main">
-        <div class="course-card">
-            <h3>Курс 1</h3>
-            <p>Description of the course</p>
-            <button>Sign Up</button>
-        </div>
-        <div class="course-card">
-            <h3>Курс 2</h3>
-            <p>Description of the course</p>
-            <button>Sign Up</button>
-        </div>
-        <div class="course-card">
-            <h3>Курс 3</h3>
-            <p>Description of the course</p>
-            <button>Sign Up</button>
+        <!-- Курсы будут добавлены сюда -->
+    </div>
+    <div id="courseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3 id="modalCourseTitle"></h3>
+            <ul id="modalTasksList"></ul>
         </div>
     </div>
 
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        checkAuthStatusAndUpdateNav();
+    });
+
+    function checkAuthStatusAndUpdateNav() {
+        // Допустим, у вас есть endpoint, который возвращает статус авторизации пользователя
+        fetch('/api/check-auth', { credentials: 'include' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch auth status');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const navPanel = document.querySelector('.header');
+                if (data.isAuthenticated) {
+                    updateNavForAuthenticatedUser(navPanel);
+                } else {
+                    updateNavForUnauthenticatedUser(navPanel);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при проверке статуса аутентификации:', error);
+                updateNavForUnauthenticatedUser(document.querySelector('.header'));
+            });
+    }
+
+    function updateNavForAuthenticatedUser(navPanel) {
+        removeNavLink('Регистрация');
+        removeNavLink('Войти');
+        addNavLink(navPanel, '/lk.html', 'Личный кабинет');
+    }
+
+    function updateNavForUnauthenticatedUser(navPanel) {
+        removeNavLink('Личный кабинет');
+    }
+
+    function addNavLink(navPanel, href, text) {
+        if (!document.querySelector(`a[href='${href}']`)) {
+            const link = document.createElement('a');
+            link.href = href;
+            link.className = 'nav-link';
+            link.textContent = text;
+            navPanel.appendChild(link);
+        }
+    }
+
+    function removeNavLink(text) {
+        const links = document.querySelectorAll('.nav-link');
+        links.forEach(link => {
+            if (link.textContent === text) {
+                link.parentNode.removeChild(link);
+            }
+        });
+    }
+    //document.addEventListener('DOMContentLoaded', function () {
+    //    fetchCourses(); // Вызываем функцию загрузки курсов при загрузке страницы
+    //});
+    // Эта функция должна быть вызвана после того, как DOM полностью загружен
+    function fetchCourses() {
+        fetch('/api/courses')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(courses => {
+                console.log(courses); // Выводим данные для проверки
+                const mainContainer = document.querySelector('.main');
+                mainContainer.innerHTML = ''; // Очистить существующие курсы
+
+                // Проверяем, что полученный ответ — это массив
+                if (!Array.isArray(courses)) {
+                    throw new Error('Expected an array of courses');
+                }
+
+                // Отображаем курсы
+                courses.forEach(course => {
+                    const courseCard = document.createElement('div');
+                    courseCard.className = 'course-card';
+                    courseCard.innerHTML = `
+                    <h3>${course.course_name}</h3>
+                    <p>${course.description_course || 'Описание отсутствует'}</p>
+                    <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>
+                `;
+                    mainContainer.appendChild(courseCard);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching courses:', error);
+            });
+    }
+
+
+
+    function showCourseDetails(courseId) {
+        fetch(`/api/course-tasks/${courseId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch tasks');
+                }
+                return response.json();
+            })
+            .then(tasks => {
+                if (!Array.isArray(tasks)) {
+                    throw new Error('Tasks is not an array');
+                }
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = `<h2>Задания курса</h2>`;
+                const list = document.createElement('ul');
+                tasks.forEach(task => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = task.task_description;
+                    list.appendChild(listItem);
+                });
+                contentArea.appendChild(list);
+            })
+            .catch(error => {
+                console.error('Error fetching course tasks:', error);
+                contentArea.innerHTML = `<p>Ошибка при загрузке заданий курса: ${error.message}</p>`;
+            });
+    }
+    document.addEventListener('DOMContentLoaded', fetchCourses);
+
+    // Обработчик нажатия для кнопки "Подробнее"
+    function showCourseDetails(courseId) {
+        fetch(`/api/course-tasks/${courseId}`)
+            .then(response => response.json())
+            .then(tasks => {
+                if (!tasks.length) {
+                    throw new Error('Заданий для этого курса не найдено.');
+                }
+                const modal = document.getElementById('courseModal');
+                const modalCourseTitle = document.getElementById('modalCourseTitle');
+                const modalTasksList = document.getElementById('modalTasksList');
+
+                modalCourseTitle.textContent = ''; // Сбросить предыдущее название курса
+                modalTasksList.innerHTML = ''; // Очистить список заданий
+
+                // Устанавливаем название курса
+                // Вы можете реализовать отдельный API-запрос или передавать информацию о курсе другим способом
+                modalCourseTitle.textContent = 'Задания курса: ' + courseId;
+
+                // Заполняем список заданий
+                tasks.forEach(task => {
+                    let listItem = document.createElement('li');
+                    listItem.textContent = task.task_description;
+                    modalTasksList.appendChild(listItem);
+                });
+
+                // Показываем модальное окно
+                modal.style.display = "block";
+            })
+            .catch(error => {
+                console.error('Error fetching course details:', error);
+                alert(error.message);
+            });
+    }
+
+    // Функция для закрытия модального окна
+    function closeModal() {
+        document.getElementById('courseModal').style.display = "none";
+    }
+
+    // Закрытие модального окна при нажатии вне его области
+    window.onclick = function (event) {
+        let modal = document.getElementById('courseModal');
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
 
 </html>

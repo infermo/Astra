@@ -89,13 +89,28 @@
             border-radius: 4px;
             /* Скругляем углы */
             border: 1px solid #ccc;
+
             /* Стандартная рамка */
+            .course-card {
+                background: #f4f4f4;
+                border: 1px solid #ddd;
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 5px;
+            }
+
+            .courses-container {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="nav-panel">
+        <a href="index.html" class="nav-link">Главная</a>
         <a href="#" class="nav-link" onclick="showTab('profile')">Мои данные</a>
         <a href="#" class="nav-link" onclick="showTab('courses')">Мои курсы</a>
         <!-- Ссылка для создания курса будет добавлена динамически если роль подходит -->
@@ -112,7 +127,7 @@
                 fetch('/logout', { method: 'POST' })
                     .then(response => {
                         if (response.ok) {
-                            window.location.href = '/auth.html';
+                            window.location.href = '/index.html';
                         }
                     })
                     .catch(error => console.error('Ошибка при выходе:', error));
@@ -154,7 +169,8 @@
                     fetchUserData();
                     break;
                 case 'courses':
-                    contentArea.innerHTML = '<h1>Мои курсы</h1>';
+                    contentArea.innerHTML = '<h1>Мои курсы</h1> <div id="contentArea"></div>';
+                    fetchCourses();
                     break;
                 case 'createCourse':
                     contentArea.innerHTML = '<h1>Создание курса</h1>';
@@ -343,6 +359,50 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                });
+        }
+
+        function fetchCourses() {
+            fetch('/api/courses')
+                .then(response => response.json())
+                .then(courses => {
+                    const contentArea = document.getElementById('contentArea');
+                    const coursesContainer = document.createElement('div');
+                    coursesContainer.className = 'courses-container';
+                    courses.forEach(course => {
+                        const courseCard = document.createElement('div');
+                        courseCard.className = 'course-card';
+                        courseCard.innerHTML = `
+                <h3>${course.course_name}</h3>
+                <p>${course.description || "Описание отсутствует"}</p>
+                <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>
+            `;
+                        coursesContainer.appendChild(courseCard);
+                    });
+                    contentArea.appendChild(coursesContainer);
+                })
+                .catch(error => {
+                    console.error('Error fetching courses:', error);
+                });
+        }
+
+        function showCourseDetails(courseId) {
+            fetch(`/api/course-tasks/${courseId}`)
+                .then(response => response.json())
+                .then(tasks => {
+                    const contentArea = document.getElementById('contentArea');
+                    contentArea.innerHTML = `<h2>Задания курса</h2>`;
+                    const list = document.createElement('ul');
+                    tasks.forEach(task => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = task.task_description;
+                        list.appendChild(listItem);
+                    });
+                    contentArea.appendChild(list);
+                })
+                .catch(error => {
+                    console.error('Error fetching course tasks:', error);
+                    contentArea.innerHTML = `<p>Ошибка при загрузке заданий курса.</p>`;
                 });
         }
         document.addEventListener('DOMContentLoaded', fetchUserData);
