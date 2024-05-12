@@ -195,41 +195,192 @@
     //    fetchCourses(); // Вызываем функцию загрузки курсов при загрузке страницы
     //});
     // Эта функция должна быть вызвана после того, как DOM полностью загружен
-    function fetchCourses() {
-        fetch('/api/courses')
+    //function fetchCourses() {
+    //    fetch('/api/courses')
+    //        .then(response => {
+    //            if (!response.ok) {
+    //                throw new Error(`HTTP error! status: ${response.status}`);
+    //            }
+    //            return response.json();
+    //        })
+    //        .then(courses => {
+    //            console.log(courses); // Выводим данные для проверки
+    //            const mainContainer = document.querySelector('.main');
+    //            mainContainer.innerHTML = ''; // Очистить существующие курсы
+    //
+    //            // Проверяем, что полученный ответ — это массив
+    //            if (!Array.isArray(courses)) {
+    //                throw new Error('Expected an array of courses');
+    //            }
+    //
+    //            // Отображаем курсы
+    //            courses.forEach(course => {
+    //                const courseCard = document.createElement('div');
+    //                courseCard.className = 'course-card';
+    //                courseCard.innerHTML = `
+    //                <h3>${course.course_name}</h3>
+    //                <p>${course.description_course || 'Описание отсутствует'}</p>
+    //                <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>
+    //            `;
+    //                mainContainer.appendChild(courseCard);
+    //            });
+    //        })
+    //        .catch(error => {
+    //            console.error('Error fetching courses:', error);
+    //        });
+    //}
+
+    // function fetchCourses() {
+    //     // Получаем userId из куки (убедитесь, что это безопасно и соответствует вашей логике аутентификации)
+    //     const userId = getCookie('userId');
+
+    //     // Вызываем API для получения курсов
+    //     fetch('/api/courses', {
+    //         credentials: 'include' // Для включения куки
+    //     })
+    //         .then(response => {
+    //             if (!response.ok) {
+    //                 throw new Error(`HTTP error! status: ${response.status}`);
+    //             }
+    //             return response.json();
+    //         })
+    //         .then(courses => {
+    //             console.log(courses); // Выводим данные для проверки
+    //             const mainContainer = document.querySelector('.main');
+    //             mainContainer.innerHTML = ''; // Очистить существующие курсы
+
+    //             // Проверяем, что полученный ответ — это массив
+    //             if (!Array.isArray(courses)) {
+    //                 throw new Error('Expected an array of courses');
+    //             }
+
+    //             // Отображаем курсы
+    //             courses.forEach(course => {
+    //                 const courseCard = document.createElement('div');
+    //                 courseCard.className = 'course-card';
+    //                 courseCard.innerHTML = `
+    //             <h3>${course.course_name}</h3>
+    //             <p>${course.description || 'Описание отсутствует'}</p>
+    //         `;
+
+    //                 // Проверяем, записан ли пользователь на курс
+    //                 if (course.isEnrolled) {
+    //                     courseCard.innerHTML += `<p>Вы уже записаны!</p>`;
+    //                 } else {
+    //                     courseCard.innerHTML += `<button onclick="enrollCourse(${userId}, ${course.course_id})">Записаться</button>`;
+    //                 }
+
+    //                 mainContainer.appendChild(courseCard);
+    //             });
+    //         })
+    //         .catch(error => {
+    //             console.error('Error fetching courses:', error);
+    //         });
+    // }
+
+    function fetchUserDataAndCourses() {
+        fetch('/api/get-user-id', { credentials: 'include' })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // Если не удалось получить данные пользователя, вызываем fetchCourses без userId
+                    fetchCourses();
+                    throw new Error('Failed to fetch user data');
+                }
+                return response.json();
+            })
+            .then(userData => {
+                const userId = userData.userId; // Предположим, что сервер возвращает ID пользователя
+                fetchCourses(userId); // Передаем userId в функцию
+            })
+            .catch(error => {
+                console.error('Ошибка при получении данных пользователя:', error);
+                // В случае ошибки также вызываем fetchCourses без userId
+                fetchCourses();
+            });
+    }
+
+
+    document.addEventListener('DOMContentLoaded', fetchUserDataAndCourses); // Изменено на fetchUserDataAndCourses
+    function fetchCourses(userId = null) {
+        fetch('/api/courses', { credentials: 'include' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch courses');
                 }
                 return response.json();
             })
             .then(courses => {
-                console.log(courses); // Выводим данные для проверки
                 const mainContainer = document.querySelector('.main');
-                mainContainer.innerHTML = ''; // Очистить существующие курсы
+                mainContainer.innerHTML = ''; // Очищаем контейнер курсов
 
-                // Проверяем, что полученный ответ — это массив
-                if (!Array.isArray(courses)) {
-                    throw new Error('Expected an array of courses');
-                }
-
-                // Отображаем курсы
                 courses.forEach(course => {
                     const courseCard = document.createElement('div');
                     courseCard.className = 'course-card';
                     courseCard.innerHTML = `
                     <h3>${course.course_name}</h3>
-                    <p>${course.description_course || 'Описание отсутствует'}</p>
-                    <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>
-                `;
-                    mainContainer.appendChild(courseCard);
+                    <p>${course.description || 'Описание отсутствует'}</p>
+                    <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>`;
+
+                    if (userId) {
+                        // Проверяем, записан ли пользователь на курс
+                        fetch(`/api/check-enrollment/${userId}/${course.course_id}`, { credentials: 'include' })
+                            .then(res => res.json())
+                            .then(enrollmentData => {
+                                if (enrollmentData.isEnrolled) {
+                                    courseCard.innerHTML += `<p>Вы уже записаны!</p>`;
+                                } else {
+                                    courseCard.innerHTML += `<button onclick="enrollCourse(${userId}, ${course.course_id})">Записаться</button>`;
+                                }
+                                mainContainer.appendChild(courseCard);
+                            });
+                    } else {
+                        // Для неавторизованных пользователей добавляем карточку без кнопки записи
+                        mainContainer.appendChild(courseCard);
+                    }
                 });
             })
             .catch(error => {
-                console.error('Error fetching courses:', error);
+                console.error('Ошибка при получении курсов:', error);
             });
     }
 
+
+
+
+
+    //document.addEventListener('DOMContentLoaded', fetchCourses);
+
+    // Пример функции для получения значения куки
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // Функция для записи на курс
+    function enrollCourse(userId, courseId) {
+        fetch('/api/enroll-course', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ userId, courseId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    location.reload(); // Перезагрузка страницы для обновления состояния
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при записи на курс:', error);
+                alert('Произошла ошибка при записи на курс.');
+            });
+    }
+
+    //document.addEventListener('DOMContentLoaded', fetchCourses);
 
 
     function showCourseDetails(courseId) {
@@ -259,7 +410,7 @@
                 contentArea.innerHTML = `<p>Ошибка при загрузке заданий курса: ${error.message}</p>`;
             });
     }
-    document.addEventListener('DOMContentLoaded', fetchCourses);
+    //document.addEventListener('DOMContentLoaded', fetchCourses);
 
     // Обработчик нажатия для кнопки "Подробнее"
     function showCourseDetails(courseId) {

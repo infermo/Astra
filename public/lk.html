@@ -340,6 +340,7 @@
                 });
         }
 
+        let globalUserData = null;
 
         function fetchUserData() {
             fetch('/api/user-data', { method: 'GET', credentials: 'include' })
@@ -355,6 +356,7 @@
                 })
                 .then(userData => {
                     console.log('Data received:', userData);
+                    globalUserData = userData;
                     displayUserData(userData);
                 })
                 .catch(error => {
@@ -363,28 +365,66 @@
         }
 
         function fetchCourses() {
-            fetch('/api/courses')
-                .then(response => response.json())
+            fetch('/api/my-courses', { credentials: 'include' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch courses');
+                    }
+                    return response.json();
+                })
                 .then(courses => {
                     const contentArea = document.getElementById('contentArea');
+                    contentArea.innerHTML = '<h1>Мои курсы</h1>';
                     const coursesContainer = document.createElement('div');
                     coursesContainer.className = 'courses-container';
+
                     courses.forEach(course => {
                         const courseCard = document.createElement('div');
                         courseCard.className = 'course-card';
                         courseCard.innerHTML = `
-                <h3>${course.course_name}</h3>
-                <p>${course.description || "Описание отсутствует"}</p>
-                <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>
-            `;
+                    <h3>${course.course_name}</h3>
+                    <p>${course.description || "Описание отсутствует"}</p>
+                    <button onclick="showCourseDetails(${course.course_id})">Подробнее</button>
+                `;
+                        // Проверяем, администратор ли пользователь
+                        if (globalUserData.role === 'admin') {
+                            courseCard.innerHTML += `<button onclick="deleteCourse(${course.course_id})">Удалить</button>`;
+                        }
+
                         coursesContainer.appendChild(courseCard);
                     });
+
                     contentArea.appendChild(coursesContainer);
                 })
                 .catch(error => {
                     console.error('Error fetching courses:', error);
+                    contentArea.innerHTML = '<p>Ошибка при загрузке курсов.</p>';
                 });
         }
+
+        function deleteCourse(courseId) {
+            if (confirm('Вы действительно хотите удалить этот курс?')) {
+                fetch(`/api/courses/${courseId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to delete the course');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        alert(data.message); // Сообщение об успешном удалении
+                        fetchCourses(); // Перезагрузить список курсов после удаления
+                    })
+                    .catch(error => {
+                        console.error('Error deleting course:', error);
+                        alert('Ошибка при удалении курса: ' + error.message);
+                    });
+            }
+        }
+
 
         function showCourseDetails(courseId) {
             fetch(`/api/course-tasks/${courseId}`)
@@ -411,7 +451,6 @@
             const contentArea = document.getElementById('contentArea');
             contentArea.innerHTML = `<h1>Мои данные</h1><p>Имя: ${userData.name}</p><p>Email: ${userData.email}</p>`;
         }
-
         //Проверка роли пользователя и добавление вкладки если нужно
         document.addEventListener('DOMContentLoaded', function () {
             fetch('/api/user-data', { method: 'GET', credentials: 'include' })
