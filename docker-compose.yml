@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    volumes:
+      - ./:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+      #- /usr/src/app/node_modules
+    ports:
+      - "3000:3000" # Прокидываем порт 3000 из контейнера на хост-машину
+    depends_on:
+      - db # Контейнер приложения будет зависеть от контейнера базы данных
+    environment:
+      - DATABASE_URL=postgresql://postgres@db:5432/postgres?schema=public
+    restart: unless-stopped
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432" # Прокидываем порт базы данных для доступа
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ssl-volume:/etc/postgresql/ssl # Примонтировали локальную папку ssl
+    command: >
+      -c ssl=on -c ssl_cert_file=/etc/postgresql/ssl/server.crt -c ssl_key_file=/etc/postgresql/ssl/server.key -c ssl_ca_file=/etc/postgresql/ssl/rootCA.crt
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  node_modules:
+  ssl-volume:

@@ -5,60 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Регистрация</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-
-        form {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            margin-top: 10px;
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        button {
-            background: #5cb85c;
-            color: white;
-            padding: 10px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #4cae4c;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/reg.css">
 </head>
 
 <body>
@@ -79,44 +26,24 @@
 
             <label for="password">Пароль:</label>
             <input type="password" id="password" name="password" required>
+            <ul id="passwordRequirements" class="requirements">
+                <li id="lengthRequirement" class="invalid">Минимум 8 символов</li>
+                <li id="uppercaseRequirement" class="invalid">Содержит заглавные буквы</li>
+                <li id="lowercaseRequirement" class="invalid">Содержит строчные буквы</li>
+                <li id="specialCharRequirement" class="invalid">Содержит специальный символ</li>
+            </ul>
+
+            <label for="confirmPassword">Повторите пароль:</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required>
+            <div id="confirmPasswordError" class="error"></div>
 
             <label for="email">Почта:</label>
             <input type="email" id="email" name="email" required>
 
-            <button type="submit">Зарегистрироваться</button>
+            <button type="submit" disabled>Зарегистрироваться</button>
         </form>
     </div>
-
-    <script>
-        document.getElementById('registrationForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-            const formData = {
-                name: this.name.value,
-                patronymic: this.patronymic.value,
-                surname: this.surname.value,
-                login: this.login.value,
-                password: this.password.value,
-                email: this.email.value
-            };
-
-            fetch('/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Success:', data);
-                    alert('Регистрация успешна!');
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                    alert('Ошибка при регистрации');
-                });
-        });
-    </script>
+    <script src="static/js/reg.js"></script>
 </body>
 
 </html>

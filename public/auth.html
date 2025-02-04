@@ -5,61 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет</title>
-    <style>
-        /* Здесь будут вставлены стили из reg.html */
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-
-        form {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            margin-top: 10px;
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        button {
-            background: #5cb85c;
-            color: white;
-            padding: 10px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #4cae4c;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/auth.css">
 </head>
 
 <body>
@@ -76,36 +22,7 @@
         </form>
     </div>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-            var login = document.getElementById('login').value;
-            var password = document.getElementById('password').value;
-
-            fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ login, password })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message === 'Успешный вход') {
-                        console.log(data.message);
-                        window.location.href = '/lk.html'; // Redirect on successful login
-                    } else {
-                        console.log(data.message);
-                        alert(data.message);  // Show error message
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Произошла ошибка при попытке входа');
-                });
-        });
-
-    </script>
+    <script src="static/js/auth.js"></script>
 </body>
 
 </html>

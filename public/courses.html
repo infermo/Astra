@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/static/css/courses.css">
+</head>
+
+<body>
+    <div class="header">
+        <a class="nav-link" href="index.html">О нас</a>
+        <a class="nav-link" href="courses.html">Курсы</a>
+        <a class="nav-link" href="reg.html">Регистрация</a>
+        <a class="nav-link" href="auth.html">Войти</a>
+    </div>
+
+    <h2 style="text-align: center; margin-top: 20px;">Рекомендованные курсы</h2>
+    <div class="main">
+    </div>
+    <div id="courseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3 id="modalCourseTitle"></h3>
+            <ul id="modalTasksList"></ul>
+        </div>
+    </div>
+    <script src="static/js/courses.js"></script>
+</body>
+
+</html>
